@@ -75,7 +75,8 @@ class Trainer:
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=opt,
             max_lr=self.config.learning_rate,
-            total_steps=self.config.num_epochs * (len(self.train_set) + 1) // self.config.batch_size
+            total_steps=self.config.num_epochs * (len(self.train_set) // self.config.batch_size + 1),
+            pct_start=0.
         )
         history = defaultdict(list)
 
@@ -129,7 +130,8 @@ class Trainer:
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=opt,
             max_lr=self.config.learning_rate,
-            total_steps=self.config.num_epochs * (len(self.train_set) + 1) // self.config.batch_size
+            total_steps=self.config.num_epochs * (len(self.train_set) // self.config.batch_size + 1),
+            pct_start=0.
         )
         history = defaultdict(list)
 
