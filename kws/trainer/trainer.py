@@ -75,7 +75,7 @@ class Trainer:
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=opt,
             max_lr=self.config.learning_rate,
-            total_steps=len(self.train_set) * self.config.num_epochs // self.config.batch_size
+            total_steps=self.config.num_epochs * (len(self.train_set) + 1) // self.config.batch_size
         )
         history = defaultdict(list)
 
@@ -99,7 +99,7 @@ class Trainer:
 
             if au_fa_fr < best_score:
                 best_score = au_fa_fr
-                path = 'checkpoints/{}-{}-{:.4f}_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
+                path = 'checkpoints/{}-{}-{:.7f}_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
                 torch.save(model.state_dict(), path)
                 wandb.save(path)
             
@@ -114,8 +114,9 @@ class Trainer:
         wandb.run.finish()
 
 
-    def train_distilled(self, small_config):
+    def train_distilled(self, small_config, teacher_checkpoint):
         teacher_model = StreamCRNN(self.config)
+        teacher_model.load_state_dict(torch.load(teacher_checkpoint, map_location=self.config.device))
         student_model = StreamCRNN(small_config)
         teacher_model.to(self.config.device)
         student_model.to(self.config.device)
@@ -128,11 +129,11 @@ class Trainer:
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=opt,
             max_lr=self.config.learning_rate,
-            total_steps=len(self.train_set) * self.config.num_epochs // self.config.batch_size
+            total_steps=self.config.num_epochs * (len(self.train_set) + 1) // self.config.batch_size
         )
         history = defaultdict(list)
 
-        for epoch in range(self.config.num_epochs):
+        for epoch in range(small_config.num_epochs):
 
             distilled_train_epoch(
                 student_model, teacher_model, opt, self.train_loader,
@@ -151,7 +152,7 @@ class Trainer:
             print('END OF EPOCH', epoch)
             if au_fa_fr < best_score:
                 best_score = au_fa_fr
-                path = 'checkpoints/{}-{}-{:.4f}_distill_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
+                path = 'checkpoints/{}-{}-{:.7f}_distill_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
                 torch.save(student_model.state_dict(), path)
                 wandb.save(path)
             
