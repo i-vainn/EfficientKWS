@@ -39,15 +39,15 @@ class Trainer:
 
         train_df = dataset.csv.iloc[train_indexes].reset_index(drop=True)
         val_df = dataset.csv.iloc[val_indexes].reset_index(drop=True)
-        train_set = SpeechCommandDataset(csv=train_df, transform=AugsCreation())
+        self.train_set = SpeechCommandDataset(csv=train_df, transform=AugsCreation())
         val_set = SpeechCommandDataset(csv=val_df)
 
         # defining dataloaders
         # Here we are obliged to use shuffle=False because of our sampler with randomness inside.
-        train_sampler = get_sampler(train_set.csv['label'].values)
+        train_sampler = get_sampler(self.train_set.csv['label'].values)
 
         self.train_loader = DataLoader(
-            train_set, batch_size=self.config.batch_size,
+            self.train_set, batch_size=self.config.batch_size,
             shuffle=False, collate_fn=Collator(),
             sampler=train_sampler,
             num_workers=2, pin_memory=True
@@ -72,13 +72,19 @@ class Trainer:
             lr=self.config.learning_rate,
             weight_decay=self.config.weight_decay
         )
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer=opt,
+            max_lr=self.config.learning_rate,
+            total_steps=len(self.train_set) * self.config.num_epochs // self.config.batch_size
+        )
         history = defaultdict(list)
 
         for epoch in range(self.config.num_epochs):
 
             train_epoch(
                 model, opt, self.train_loader,
-                self.melspec_train, self.config.device
+                self.melspec_train, self.config.device,
+                scheduler=scheduler
             )
             au_fa_fr = validation(
                 model, self.val_loader,
@@ -119,13 +125,19 @@ class Trainer:
             lr=self.config.learning_rate,
             weight_decay=self.config.weight_decay
         )
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer=opt,
+            max_lr=self.config.learning_rate,
+            total_steps=len(self.train_set) * self.config.num_epochs // self.config.batch_size
+        )
         history = defaultdict(list)
 
         for epoch in range(self.config.num_epochs):
 
             distilled_train_epoch(
                 student_model, teacher_model, opt, self.train_loader,
-                self.melspec_train, self.config.device, small_config.alpha
+                self.melspec_train, self.config.device, 
+                small_config.alpha, scheduler=scheduler
             )
             au_fa_fr = validation(
                 student_model, self.val_loader,

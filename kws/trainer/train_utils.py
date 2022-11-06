@@ -20,8 +20,6 @@ def train_epoch(model, opt, loader, log_melspec, device, scheduler=None):
 
         # run model # with autocast():
         logits = model(batch)
-        # we need probabilities so we use softmax & CE separately
-        probs = F.softmax(logits, dim=-1)
         loss = F.cross_entropy(logits, labels)
 
         loss.backward()
@@ -32,6 +30,7 @@ def train_epoch(model, opt, loader, log_melspec, device, scheduler=None):
         if it % 20 == 0:
             wandb.log(dict(
                 train_loss=np.mean(loss_log[-20:]),
+                learning_rate=opt.param_groups[0]['lr']
             ))
 
         if scheduler:
@@ -69,6 +68,7 @@ def distilled_train_epoch(student_model, teacher_model, opt, loader, log_melspec
         if it % 20 == 0:
             wandb.log(dict(
                 train_loss=np.mean(loss_log[-20:]),
+                learning_rate=opt.param_groups[0]['lr']
             ))
 
         if scheduler:
