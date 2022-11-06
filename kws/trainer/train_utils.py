@@ -37,8 +37,8 @@ def train_epoch(model, opt, loader, log_melspec, device, scheduler=None):
             scheduler.step()
 
 
-def distill_loss(student_raw, teacher_logprobs, labels, alpha):
-    student_logprobs = F.log_softmax(student_raw, dim=-1)
+def distill_loss(student_raw, teacher_logprobs, labels, alpha, temperature):
+    student_logprobs = F.log_softmax(student_raw / temperature, dim=-1)
     l_dst = F.kl_div(student_logprobs, teacher_logprobs, log_target=True)
     l_regular = F.cross_entropy(student_raw, labels)
     return alpha * l_dst + (1 - alpha) * l_regular
@@ -46,6 +46,7 @@ def distill_loss(student_raw, teacher_logprobs, labels, alpha):
 def distilled_train_epoch(student_model, teacher_model, opt, loader, log_melspec, device, alpha, scheduler=None):
     student_model.train()
     teacher_model.eval()
+    temperature = 20.
     loss_log = []
     for it, (batch, labels) in tqdm(enumerate(loader, 1), total=len(loader)):
         batch, labels = batch.to(device), labels.to(device)
@@ -55,10 +56,10 @@ def distilled_train_epoch(student_model, teacher_model, opt, loader, log_melspec
 
         with torch.inference_mode():
             teacher_raw = teacher_model(batch)
-            teacher_logprobs = F.log_softmax(teacher_raw, dim=-1)
+            teacher_logprobs = F.log_softmax(teacher_raw / temperature, dim=-1)
 
         student_raw = student_model(batch)
-        loss = distill_loss(student_raw, teacher_logprobs.clone(), labels, alpha)
+        loss = distill_loss(student_raw, teacher_logprobs.clone(), labels, alpha, temperature)
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(student_model.parameters(), 5)
