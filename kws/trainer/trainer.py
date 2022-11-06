@@ -79,40 +79,44 @@ class Trainer:
             pct_start=0.
         )
         history = defaultdict(list)
+        try:
+            for epoch in range(self.config.num_epochs):
 
-        for epoch in range(self.config.num_epochs):
+                train_epoch(
+                    model, opt, self.train_loader,
+                    self.melspec_train, self.config.device,
+                    scheduler=scheduler
+                )
+                au_fa_fr = validation(
+                    model, self.val_loader,
+                    self.melspec_val, self.config.device
+                )
+                history['val_metric'].append(au_fa_fr)
+                wandb.log(dict(
+                    val_au_fa_fr=au_fa_fr,
+                ))
+                self.plot_history(history)
+                print('END OF EPOCH', epoch)
 
-            train_epoch(
-                model, opt, self.train_loader,
-                self.melspec_train, self.config.device,
-                scheduler=scheduler
-            )
-            au_fa_fr = validation(
+                if au_fa_fr < best_score:
+                    best_score = au_fa_fr
+                    path = 'checkpoints/{}-{}-{:.7f}_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
+                    torch.save(model.state_dict(), path)
+                    wandb.save(path)
+        except:
+            pass
+        finally:
+            path = 'checkpoints/{}-final_model.pth'.format(wandb.run.name)
+            torch.save(model.state_dict(), path)
+            wandb.save(path)
+            val_stats = validation(
                 model, self.val_loader,
-                self.melspec_val, self.config.device
+                self.melspec_val, self.config.device, True
             )
-            history['val_metric'].append(au_fa_fr)
-            wandb.log(dict(
-                val_au_fa_fr=au_fa_fr,
-            ))
-            self.plot_history(history)
-            print('END OF EPOCH', epoch)
-
-            if au_fa_fr < best_score:
-                best_score = au_fa_fr
-                path = 'checkpoints/{}-{}-{:.7f}_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
-                torch.save(model.state_dict(), path)
-                wandb.save(path)
-            
-
-        val_stats = validation(
-            model, self.val_loader,
-            self.melspec_val, self.config.device, True
-        )
-        wandb.log(
-            val_stats
-        )
-        wandb.run.finish()
+            wandb.log(
+                val_stats
+            )
+            wandb.run.finish()
 
 
     def train_distilled(self, small_config, teacher_checkpoint):
@@ -135,37 +139,43 @@ class Trainer:
         )
         history = defaultdict(list)
 
-        for epoch in range(small_config.num_epochs):
+        try:
+            for epoch in range(small_config.num_epochs):
 
-            distilled_train_epoch(
-                student_model, teacher_model, opt, self.train_loader,
-                self.melspec_train, self.config.device, 
-                small_config.alpha, scheduler=scheduler
-            )
-            au_fa_fr = validation(
+                distilled_train_epoch(
+                    student_model, teacher_model, opt, self.train_loader,
+                    self.melspec_train, self.config.device, 
+                    small_config.alpha, scheduler=scheduler
+                )
+                au_fa_fr = validation(
+                    student_model, self.val_loader,
+                    self.melspec_val, self.config.device
+                )
+                history['val_metric'].append(au_fa_fr)
+                wandb.log(dict(
+                    val_au_fa_fr=au_fa_fr,
+                ))
+                self.plot_history(history)
+                print('END OF EPOCH', epoch)
+                if au_fa_fr < best_score:
+                    best_score = au_fa_fr
+                    path = 'checkpoints/{}-{}-{:.7f}_distill_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
+                    torch.save(student_model.state_dict(), path)
+                    wandb.save(path)
+        except:
+            pass
+        finally:
+            path = 'checkpoints/{}-final_model.pth'.format(wandb.run.name)
+            torch.save(student_model.state_dict(), path)
+            wandb.save(path)
+            val_stats = validation(
                 student_model, self.val_loader,
-                self.melspec_val, self.config.device
+                self.melspec_val, self.config.device, True
             )
-            history['val_metric'].append(au_fa_fr)
-            wandb.log(dict(
-                val_au_fa_fr=au_fa_fr,
-            ))
-            self.plot_history(history)
-            print('END OF EPOCH', epoch)
-            if au_fa_fr < best_score:
-                best_score = au_fa_fr
-                path = 'checkpoints/{}-{}-{:.7f}_distill_model.pth'.format(wandb.run.name, epoch, au_fa_fr)
-                torch.save(student_model.state_dict(), path)
-                wandb.save(path)
-            
-        val_stats = validation(
-            student_model, self.val_loader,
-            self.melspec_val, self.config.device, True
-        )
-        wandb.log(
-            val_stats
-        )
-        wandb.run.finish()
+            wandb.log(
+                val_stats
+            )
+            wandb.run.finish()
 
 
     def plot_history(self, history):

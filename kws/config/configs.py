@@ -27,9 +27,9 @@ class UncompressedConfig:
 
 @dataclasses.dataclass
 class SmallConfig(UncompressedConfig):
-    cnn_out_channels: int = 5
+    cnn_out_channels: int = 4
     kernel_size: Tuple[int, int] = (5, 20)
     stride: Tuple[int, int] = (2, 8)
-    hidden_size: int = 16
+    hidden_size: int = 8
     gru_num_layers: int = 1
     alpha: float = 0.1
