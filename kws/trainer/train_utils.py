@@ -58,7 +58,7 @@ def distilled_train_epoch(student_model, teacher_model, opt, loader, log_melspec
             teacher_logprobs = F.log_softmax(teacher_raw, dim=-1)
 
         student_raw = student_model(batch)
-        loss = distill_loss(student_raw, teacher_logprobs, labels, alpha)
+        loss = distill_loss(student_raw, teacher_logprobs.clone(), labels, alpha)
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(student_model.parameters(), 5)
