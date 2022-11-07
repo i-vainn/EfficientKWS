@@ -9,7 +9,7 @@ class UncompressedConfig:
     batch_size: int = 128
     learning_rate: float = 3e-4
     weight_decay: float = 1e-5
-    num_epochs: int = 20
+    num_epochs: int = 50
     n_mels: int = 40
     cnn_out_channels: int = 8
     kernel_size: Tuple[int, int] = (5, 20)
@@ -27,9 +27,9 @@ class UncompressedConfig:
 
 @dataclasses.dataclass
 class SmallConfig(UncompressedConfig):
-    cnn_out_channels: int = 4
+    cnn_out_channels: int = 5
     kernel_size: Tuple[int, int] = (5, 20)
     stride: Tuple[int, int] = (2, 8)
-    hidden_size: int = 8
+    hidden_size: int = 16
     gru_num_layers: int = 1
-    alpha: float = 0.1
+    alpha: float = 0.05

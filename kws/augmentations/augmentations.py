@@ -3,6 +3,8 @@ import torchaudio
 from torch import nn
 from torch import distributions
 
+from kws.config import UncompressedConfig
+
 class AugsCreation:
 
     def __init__(self):
@@ -56,9 +58,11 @@ class AugsCreation:
 
         return augs[aug_num](wav)
 
-class LogMelspec:
 
-    def __init__(self, is_train, config):
+class LogMelspec(nn.Module):
+
+    def __init__(self, is_train: bool, config: UncompressedConfig):
+        super().__init__()
         # with augmentations
         if is_train:
             self.melspec = nn.Sequential(
@@ -83,6 +87,6 @@ class LogMelspec:
                 n_mels=config.n_mels
             ).to(config.device)
 
-    def __call__(self, batch):
+    def forward(self, batch: torch.Tensor):
         # already on device
         return torch.log(self.melspec(batch).clamp_(min=1e-9, max=1e9))

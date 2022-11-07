@@ -1,8 +1,10 @@
 import torch
 import torch.nn.functional as F
+from typing import Union
+
 from kws.models import CRNN
 from kws.augmentations import LogMelspec
-
+from kws.config import UncompressedConfig, SmallConfig
 
 # class StreamCRNN(CRNN):
 #     '''
@@ -44,7 +46,7 @@ class StreamCRNN(CRNN):
         Streaming version of CRNN.
     '''
 
-    def __init__(self, config):
+    def __init__(self, config: Union[UncompressedConfig, SmallConfig]):
         super().__init__(config)
 
         self.mel_processor = LogMelspec(False, config)
